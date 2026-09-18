@@ -1,0 +1,7 @@
+# Dev
+__pycache__/
+.claude
+.venv
+
+# Secrets
+.env

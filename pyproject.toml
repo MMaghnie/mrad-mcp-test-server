@@ -1,0 +1,16 @@
+[project]
+name = "mrad-mcp-test-server"
+version = "0.1.0"
+description = "Test MCP server for verifying remote connectivity with Claude Desktop"
+authors = [
+    { name = "Marwa Maghnie", email = "m.maghnie@mrad-services.com" },
+]
+requires-python = ">=3.12"
+dependencies = [
+    "fastmcp>=4.0,<5",
+    "httpx2>=2.13,<3",
+    "python-dotenv>=1.2,<2",
+]
+
+[tool.uv]
+package = false

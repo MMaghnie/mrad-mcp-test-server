@@ -1,0 +1,22 @@
+[Unit]
+Description=MRAD MCP test server
+After=network.target
+
+[Service]
+Type=simple
+User=mcpserver
+Group=mcpserver
+WorkingDirectory=/opt/mrad-mcp-test-server
+ExecStart=/opt/mrad-mcp-test-server/.venv/bin/python server.py
+Restart=on-failure
+RestartSec=3
+
+# Server binds to 127.0.0.1 only — nginx is the only public entry point
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/mrad-mcp-test-server
+
+[Install]
+WantedBy=multi-user.target

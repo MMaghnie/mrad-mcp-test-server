@@ -1,9 +1,11 @@
 [Unit]
 Description=MRAD MCP test server
 After=network.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
 
 [Service]
-Type=simple
+Type=exec
 User=mcpserver
 Group=mcpserver
 WorkingDirectory=/opt/mrad-mcp-test-server

@@ -125,6 +125,16 @@ sudo ufw allow 22/tcp
 sudo ufw enable
 ```
 
+### 7. Connecting a client
+
+IT forwards external port `555` to this VM's `443` (NAT, not a direct
+listener change — nginx still listens on 443 as configured above). So the
+MCP endpoint clients (e.g. Claude Desktop) actually connect to is:
+
+```
+https://mcpserver.mrad-services.com:555/mcp
+```
+
 ## Updating the deployment
 
 Some extra steps for security has been taken in this repo, so just `cd <to this repo>` and `git pull` wont work directly.

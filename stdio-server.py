@@ -11,7 +11,6 @@ load_dotenv()
 
 ORCH_URL = os.environ["ORCH_URL"]
 ORCH_ADDRESS_ENDPOINT = os.environ["ORCH_ADDRESS_ENDPOINT"]
-ORCH_TOKEN = os.environ["ORCH_TOKEN"]
 
 mcp = FastMCP(
     name="mrad-test-server",
@@ -24,13 +23,17 @@ mcp = FastMCP(
 
 
 @mcp.tool
-async def get_address_info(address_number: int = 1983) -> dict:
-    """Look up JDE address book info (name, phone, city, etc.) for an address number."""
+async def get_address_info(orch_token: str, address_number: int = 1983) -> dict:
+    """Look up JDE address book info (name, phone, city, etc.) for an address number.
+
+    orch_token is a JDE orchestrator token; these expire roughly hourly, so request
+    a fresh one if this fails with an invalid-token error.
+    """
     async with httpx.AsyncClient() as client:
         response = await client.post(
             ORCH_URL + ORCH_ADDRESS_ENDPOINT,
             headers={"Content-Type": "application/json"},
-            json={"address_number": address_number, "token": ORCH_TOKEN},
+            json={"address_number": address_number, "token": orch_token},
         )
 
     if response.status_code != 200:

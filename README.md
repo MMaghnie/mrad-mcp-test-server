@@ -34,7 +34,10 @@ git clone <this-repo-url> /opt/mrad-mcp-test-server
 cd /opt/mrad-mcp-test-server
 curl -LsSf https://astral.sh/uv/install.sh | sh   # if uv isn't installed yet
 uv sync --frozen
+cp .env.example .env
 ```
+
+Then add your environment secrets to `.env`
 
 ### 2. Create a dedicated service user
 
@@ -65,20 +68,34 @@ the network. nginx is the only public entry point.
 
 ### 4. Get a TLS certificate
 
-Point your DNS record at the VM's (VPN/private) IP, then issue a cert. If
-your DNS provider isn't reachable from the VM directly (e.g. it's an
-internal-only host), use a DNS-01 challenge so certbot never needs inbound
-access:
+Point your DNS record at the VM's (VPN/private) IP. The VM itself isn't
+reachable from the internet (VPN-only, per the firewall step below), so
+Let's Encrypt can't validate ownership by connecting to it directly. Use a
+DNS-01 challenge instead — it only needs the VM to reach *out* to
+Cloudflare's API, not the other way around:
 
 ```bash
-sudo apt install certbot python3-certbot-dns-<your-provider-plugin>
-sudo certbot certonly --dns-<your-provider-plugin> -d <your-domain>
+sudo apt install certbot python3-certbot-dns-cloudflare
 ```
 
-Substitute the plugin for whatever DNS provider hosts your domain
-(`dns-google`, `dns-cloudflare`, `dns-route53`, etc.). Without a supported
-plugin, use `certbot certonly --manual --preferred-challenges dns` and add
-the TXT record it prints by hand.
+Create a credentials file with a Cloudflare API token scoped to
+`Zone:DNS:Edit` for this domain's zone:
+
+```bash
+sudo mkdir -p /etc/letsencrypt
+printf 'dns_cloudflare_api_token = <your-api-token>\n' | sudo tee /etc/letsencrypt/cloudflare.ini
+sudo chmod 600 /etc/letsencrypt/cloudflare.ini
+```
+
+```bash
+sudo certbot certonly --dns-cloudflare \
+  --dns-cloudflare-credentials /etc/letsencrypt/cloudflare.ini \
+  -d <your-domain>
+```
+
+This also enables certbot's automatic renewal timer, which reuses this
+credentials file — no manual steps needed going forward, as long as the file
+stays in place and the token stays valid.
 
 ### 5. Configure nginx
 

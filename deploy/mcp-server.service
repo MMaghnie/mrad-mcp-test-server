@@ -12,6 +12,7 @@ WorkingDirectory=/opt/mrad-mcp-test-server
 ExecStart=/opt/mrad-mcp-test-server/.venv/bin/python server.py
 Restart=on-failure
 RestartSec=3
+Environment=FASTMCP_CHECK_FOR_UPDATES=off
 
 # Server binds to 127.0.0.1 only — nginx is the only public entry point
 NoNewPrivileges=true

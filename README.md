@@ -68,11 +68,11 @@ the network. nginx is the only public entry point.
 
 ### 4. Get a TLS certificate
 
-Point your DNS record at the VM's (VPN/private) IP. The VM itself isn't
-reachable from the internet (VPN-only, per the firewall step below), so
-Let's Encrypt can't validate ownership by connecting to it directly. Use a
-DNS-01 challenge instead — it only needs the VM to reach *out* to
-Cloudflare's API, not the other way around:
+Point your DNS record at the VM's private IP. The VM itself isn't reachable
+from the internet (it sits behind the company firewall), so Let's Encrypt
+can't validate ownership by connecting to it directly. Use a DNS-01
+challenge instead — it only needs the VM to reach *out* to Cloudflare's API,
+not the other way around:
 
 ```bash
 sudo apt install certbot python3-certbot-dns-cloudflare
@@ -90,8 +90,17 @@ sudo chmod 600 /etc/letsencrypt/cloudflare.ini
 ```bash
 sudo certbot certonly --dns-cloudflare \
   --dns-cloudflare-credentials /etc/letsencrypt/cloudflare.ini \
-  -d <your-domain>
+  --cert-name mrad-services.com \
+  -d '*.mrad-services.com'
 ```
+
+The Cloudflare token is scoped to `*.mrad-services.com`, so we request a
+single wildcard cert (covers `mcpserver.mrad-services.com` and any future
+subdomain) rather than one cert per subdomain. `--cert-name` pins the
+lineage directory to `/etc/letsencrypt/live/mrad-services.com/` — without
+it, certbot still drops the wildcard's leading `*.` to name the lineage, but
+being explicit keeps this predictable across renewals and matches what
+`nginx-mcp-server.conf` expects.
 
 This also enables certbot's automatic renewal timer, which reuses this
 credentials file — no manual steps needed going forward, as long as the file
@@ -107,12 +116,12 @@ sudo nginx -t && sudo systemctl reload nginx
 
 ### 6. Firewall
 
-Only allow 443 (and 22) from your VPN subnet. The server should not be
-reachable from the open internet:
+The company firewall is what keeps the VM off the open internet, so `ufw`
+here just needs to open the ports this service actually uses:
 
 ```bash
-sudo ufw allow from <vpn-subnet> to any port 443 proto tcp
-sudo ufw allow from <vpn-subnet> to any port 22 proto tcp
+sudo ufw allow 443/tcp
+sudo ufw allow 22/tcp
 sudo ufw enable
 ```
 

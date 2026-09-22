@@ -12,8 +12,12 @@ employees can connect to a self-hosted MCP server from Claude Desktop.
 
 ```bash
 uv sync
+cp .env.example .env
 uv run python server.py
 ```
+
+For local runs, set `PUBLIC_BASE_URL=http://127.0.0.1:8000` in `.env` — OAuth
+issuer URLs must be HTTPS except for `localhost`/`127.0.0.1`.
 
 ## Deploying on a new VM
 
@@ -139,6 +143,10 @@ https://mcpserver.mrad-services.com:555/mcp
 
 Some extra steps for security has been taken in this repo, so just `cd <to this repo>` and `git pull` wont work directly.
 
+If `deploy/nginx-mcp-server.conf` changed, also redo step 5 (copy the file to
+`/etc/nginx/sites-available/mcp-server`, `nginx -t`, `systemctl reload nginx`)
+— nginx doesn't auto-pick-up changes to the repo copy of that file.
+
 `mcpserver` has no home directory, no git credentials, and no `uv`
 installation, so it can't pull or rebuild anything itself. 
 
@@ -168,3 +176,26 @@ files again.
 Edit `server.py`: each `@mcp.tool` function becomes an MCP tool, with the
 docstring as its description and type hints driving the input schema. Keep
 docstrings terse; they're sent to Claude verbatim on every connection.
+
+## Authentication
+
+Tools that call JDE Orchestrator (like `get_address_info`) need an
+orchestrator token. `auth.py` makes this server its own OAuth 2.1
+authorization server: connecting a client redirects the user to a login page
+(served by this same server) asking for their JDE username and password.
+
+Those credentials are forwarded to JDE's `tokenrequest` endpoint exactly once
+to mint the token, then discarded without passing through an MCP tool call.
+
+This design (rather than a simpler "pass a token as a tool argument") exists
+because of two JDE constraints:
+- Orchestrator tokens are bound to the machine/network origin that requested
+  them. A token minted from a laptop only works from that laptop. So the
+  token has to be minted by this VM itself, which means this server has to be
+  the one making the `tokenrequest` call, not the connecting client.
+- `tokenrequest` only accepts a raw username/password. There's no
+  OAuth/SAML/Kerberos grant available to sidestep that.
+
+The MCP session token this server issues expires with the JDE token it wraps. 
+There's no silent refresh: once it lapses, reconnecting triggers
+the login page again. For a testing phase, this works.
